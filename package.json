@@ -1,0 +1,36 @@
+{
+  "name": "carcare",
+  "version": "1.0.0",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.654.0",
+    "@azure/storage-blob": "^12.25.0",
+    "axios": "^1.7.7",
+    "body-parser": "^1.20.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "express-rate-limit": "^7.4.0",
+    "firebase-admin": "^12.5.0",
+    "firebase-auth": "^0.1.2",
+    "formidable": "^3.5.1",
+    "fs": "^0.0.1-security",
+    "google-auth-library": "^9.14.2",
+    "googleapis": "^144.0.0",
+    "middleware": "^1.0.0",
+    "multer": "^1.4.5-lts.1",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.9.15",
+    "nodemon": "^3.1.5",
+    "rate-limit": "^0.1.1",
+    "ws": "^8.18.0"
+  }
+}

@@ -1,0 +1,4 @@
+{
+    "appService.defaultWebAppToDeploy": "/subscriptions/bacf443d-cb62-4950-b4a8-194f10e764cc/resourceGroups/appsvc_linux_centralus_basic/providers/Microsoft.Web/sites/carcarebaked",
+    "appService.deploySubpath": "."
+}
