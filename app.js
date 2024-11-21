@@ -3,6 +3,7 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const path = require('path');
 const routes = require('./src/routes');
+const notification = require('./src/controllers/toAllNotifiction')
 
 // Load environment variables
 dotenv.config();

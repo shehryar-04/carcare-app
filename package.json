@@ -23,7 +23,7 @@
     "firebase-auth": "^0.1.2",
     "formidable": "^3.5.1",
     "fs": "^0.0.1-security",
-    "google-auth-library": "^9.14.2",
+    "google-auth-library": "^9.15.0",
     "googleapis": "^144.0.0",
     "middleware": "^1.0.0",
     "multer": "^1.4.5-lts.1",

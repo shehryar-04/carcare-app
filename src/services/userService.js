@@ -1,7 +1,10 @@
 const { db, admin } = require('../config/firebaseconfig');
 const axios = require('axios');  
 const nodemailer = require('nodemailer');
-const { google } = require('googleapis');
+const env = require('dotenv');
+
+env.config();
+// const { google } = require('googleapis');
 
 // Email setup
 const transporter = nodemailer.createTransport({
@@ -11,26 +14,6 @@ const transporter = nodemailer.createTransport({
     pass: process.env.PASSWORD,
   },
 });
-function getAccessToken() {
-  return new Promise(function(resolve, reject) {
-    const key = require('../config/firebaseCredentials.json');
-    const SCOPES = ['https://www.googleapis.com/auth/firebase'];
-    const jwtClient = new google.auth.JWT(
-      key.client_email,
-      null,
-      key.private_key,
-      SCOPES,
-      null
-    );
-    jwtClient.authorize(function(err, tokens) {
-      if (err) {
-        reject(err);
-        return;
-      }
-      resolve(tokens.access_token);
-    });
-  });
-}
   
 exports.createUser = async (displayName, email, phoneNumber, password, fcmToken, image = null,vendorid=null) => {
   const existingUser = await admin
@@ -205,50 +188,6 @@ exports.updateFcmToken = async (uid, newFcmToken) => {
   return { updated: false };  
 };  
 
-exports.sendPushNotification = async (uid, title, body) => {  
-    try {  
-        // Fetch user data from Firestore  
-        const userRef = admin.firestore().collection('users').doc(uid);  
-        const doc = await userRef.get();  
-        const accessToken= await getAccessToken()  
-        // console.log(accessToken+"HELLO")
-        if (!doc.exists) {  
-            console.error('No such user!');  
-            throw new Error('User does not exist');  
-        }  
-  
-        const userData = doc.data();  
-        const fcmToken = userData.fcmToken; // Assuming the token is stored in the `fcmToken` field  
-  
-        if (!fcmToken) {  
-            throw new Error('FCM token not found for user');  
-        }  
-  
-        // Construct the notification message  
-        const message = {  
-            message: {  
-                token: fcmToken,  
-                notification: {  
-                    body: body,  
-                    title: title  
-                }  
-            }  
-        };  
-  
-        // Send a notification using FCM  
-        const response = await axios.post('https://fcm.googleapis.com/v1/projects/carcare-ff31c/messages:send', message, {  
-            headers: {  
-                'Content-Type': 'application/json',  
-                'Authorization': "Bearer" + accessToken  
-            }  
-        });  
-  
-        console.log('Notification sent successfully:', response.data);  
-    } catch (error) {  
-        console.error('Error in sending notification:', error.message);  
-        throw error; // Rethrow the error for the controller to catch  
-    }  
-};  
 // userService.js  
   
 exports.updateEmailVerification = async (uid, isVerified) => {  
