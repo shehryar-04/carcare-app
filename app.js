@@ -3,32 +3,40 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const path = require('path');
 const routes = require('./src/routes');
-const notification = require('./src/controllers/toAllNotifiction')
+// const notification = require('./src/controllers/toAllNotifiction');
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
 
-// Middleware to parse JSON requests
-app.use(express.json({ limit: '1mb' }));
+// CORS Configuration
+const corsOptions = {  
+  origin: 'http://localhost:3000', // Allow requests only from this origin
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Specify allowed HTTP methods
+  credentials: true, // Allow cookies and authorization headers
+};
 
-// Enable CORS for all routes
-app.use(cors());
+// Middleware
+app.use(cors(corsOptions)); // Enable CORS with specified options
+app.use(express.json({ limit: '1mb' })); // Parse JSON requests with size limit
+app.use(express.static(path.join(__dirname, 'public'))); // Serve static files
 
-// static website
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Routes
+// API Routes
 app.use('/api', routes);
 
-// Start the server
-const PORT = process.env.PORT || 4000;
+// Global Error Handler (Optional but Recommended)
+app.use((err, req, res, next) => {
+  console.error('Unhandled Error:', err);
+  res.status(500).json({ error: 'Something went wrong on the server.' });
+});
 
+// Server Initialization
+const PORT = process.env.PORT || 4000;
 app.listen(PORT, (err) => {
   if (err) {
     console.error('Error starting the server:', err);
   } else {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
   }
 });

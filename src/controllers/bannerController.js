@@ -7,7 +7,7 @@ exports.createBanner = async (req, res) => {
   try {
     const { title, description, link, image } = req.body;
     await bannerService.createBanner(title, description, link, image);
-    res.status(201).send('Banner created successfully.');
+    res.status(201).json({ message: 'Banner created successfully.' });
   } catch (error) {
     handleErrorResponse(res, error, 'Error creating banner');
   }
@@ -41,7 +41,7 @@ exports.updateBanner = async (req, res) => {
     const { title, description, link } = req.body;
     const file = req.file;
     await bannerService.updateBanner(id, title, description, link, file);
-    res.status(200).send('Banner updated successfully.');
+    res.status(200).json({ message: 'Banner updated successfully.' });
   } catch (error) {
     handleErrorResponse(res, error, 'Error updating banner');
   }
@@ -52,7 +52,7 @@ exports.deleteBanner = async (req, res) => {
   try {
     const { id } = req.params;
     await bannerService.deleteBanner(id);
-    res.status(200).send('Banner deleted successfully.');
+    res.status(200).json({ message: 'Banner deleted successfully.' });
   } catch (error) {
     handleErrorResponse(res, error, 'Error deleting banner');
   }

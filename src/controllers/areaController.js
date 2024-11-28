@@ -48,7 +48,7 @@ exports.updateArea = async (req, res) => {
 
   try {
     await db.collection('areas').doc(id).update({ name });
-    res.status(204).send(); // No content
+    res.status(204).json({message: 'Area updated successfully'}); // No content
   } catch (error) {
     handleErrorResponse(res, error, 'Error updating area:');
   }
@@ -60,7 +60,7 @@ exports.deleteArea = async (req, res) => {
 
   try {
     await db.collection('areas').doc(id).delete();
-    res.status(204).send(); // No content
+    res.status(204).json({message: 'Area deleted successfully'}); // No content
   } catch (error) {
     handleErrorResponse(res, error, 'Error deleting area:');
   }

@@ -8,17 +8,15 @@ const handleErrorResponse = (res, error, message) =>
 // Create a new service
 exports.createService = async (req, res) => {
   try {
-    const { name, heading, description, buttons, image,price,vendorCommission } = req.body;
+    const { name, description,packages, image,vendorCommission} = req.body;
     await serviceService.createService(
       name,
-      heading,
       description,
-      buttons,
+      packages,
       image,
-      price,
       vendorCommission
     );
-    res.status(201).send('Service created successfully.');
+    res.status(201).json({ message: 'Service created successfully.' });
   } catch (error) {
     handleErrorResponse(res, error, 'Error creating service');
   }
@@ -58,7 +56,7 @@ exports.updateService = async (req, res) => {
       buttons,
       image
     );
-    res.status(200).send('Service updated successfully.');
+    res.status(200).json({ message: 'Service updated successfully.' });
   } catch (error) {
     handleErrorResponse(res, error, 'Error updating service');
   }
@@ -69,7 +67,7 @@ exports.deleteService = async (req, res) => {
   try {
     const { id } = req.params;
     await serviceService.deleteService(id);
-    res.status(200).send('Service deleted successfully.');
+    res.status(200).json({ message: 'Service deleted successfully.' });
   } catch (error) {
     handleErrorResponse(res, error, 'Error deleting service');
   }
@@ -92,7 +90,8 @@ exports.requestService = async (req, res) => {
       vendorData,
       location,
       vendorId = null,
-      packages
+      packages,
+      serviceId
     } = req.body;
 
     // Validate the incoming data
@@ -128,6 +127,7 @@ exports.requestService = async (req, res) => {
       state: 'active',
       area,
       serviceName,
+      serviceId,
       vendorResponses,
       location,
       vendorId,
@@ -201,8 +201,7 @@ exports.updateServiceRequestAllFields = async (req, res) => {
     time,
     vehicleNumber,
     vehicleType,
-    state,
-    vendorId
+    currentLocation
   } = req.body;
   try {
     const docRef = db.collection('serviceRequests').doc(id);
@@ -211,8 +210,7 @@ exports.updateServiceRequestAllFields = async (req, res) => {
       time,
       vehicleNumber,
       vehicleType,
-      state,
-      vendorId
+      currentLocation
     });
     return res
       .status(200)
@@ -243,7 +241,7 @@ exports.deleteServiceRequest = async (req, res) => {
 
   try {
     await db.collection('serviceRequests').doc(id).delete();
-    return res.status(204).send();
+    return res.status(204).json({ message: 'Service request deleted successfully' });
   } catch (error) {
     handleErrorResponse(res, error, 'Failed to delete service request');
   }
@@ -319,76 +317,59 @@ exports.getServiceRequestByVendor = async (req, res) => {
     handleErrorResponse(res, error, 'Failed to retrieve service requests');
   }
 };
-
 // Accept service request by a vendor
 exports.acceptServiceRequest = async (req, res) => {  
   const { requestId, vendorId } = req.params;  
   try {  
-    // Start a Firestore transaction  
-    await db.runTransaction(async (transaction) => {  
-      const requestRef = db.collection('serviceRequests').doc(requestId);  
-      const serviceRequestDoc = await transaction.get(requestRef);  
-  
-      // Check if the service request exists  
-      if (!serviceRequestDoc.exists) {  
-        return res.status(404).json({ error: 'Service request not found' });  
-      }  
-  
-      const serviceRequestData = serviceRequestDoc.data();  
-  
-      // Check if this service request has already been accepted by another vendor  
-      if (serviceRequestData.vendorId) {  
-        return res.status(403).json({  
-          error: 'Service request has already been accepted by another vendor.',  
-          acceptedVendorId: serviceRequestData.vendorId  
-        });  
-      }  
-  
-      // Check if the vendor ID is valid in the service request  
-      if (!serviceRequestData.vendorResponses || !serviceRequestData.vendorResponses[vendorId]) {  
-        return res.status(404).json({ error: `Vendor ID not found in this service request`, vendorId });  
-      }  
-  
-      // Get the service data to retrieve the vendor commission percentage  
-      const serviceDoc = await db.collection('services').doc(serviceRequestData.serviceId).get();  
-      if (!serviceDoc.exists) {  
-        return res.status(404).json({ error: 'Service not found' });  
-      }  
-  
-      const serviceData = serviceDoc.data();  
-      const vendorCommissionPercentage = serviceData.vendorCommission; // Assuming vendorCommission is a percentage (e.g., 10 for 10%)  
-  
-      // Calculate the commission amount based on the service request price  
-      const commissionAmount = (serviceRequestData.price * vendorCommissionPercentage) / 100;  
-  
-      // Update the vendor's response status and the main vendor ID field  
-      transaction.update(requestRef, {  
-        [`vendorResponses.${vendorId}.status`]: 'pending',  
-        vendorId: vendorId, // Set the accepted vendor's ID  
-        state: 'pending'  
-      });  
-  
-      // Update the vendor's credits with the commission amount  
-      const vendorRef = db.collection('vendors').doc(vendorId);  
-      transaction.update(vendorRef, {  
-        credits: admin.firestore.FieldValue.increment(commissionAmount) // Increment the vendor's credits by the commission amount  
-      });  
-  
-      // Set the status of all other vendors to 'unactive'  
-      Object.keys(serviceRequestData.vendorResponses).forEach((otherVendorId) => {  
-        if (otherVendorId !== vendorId) {  
+      // Start a Firestore transaction  
+      await db.runTransaction(async (transaction) => {  
+          const requestRef = db.collection('serviceRequests').doc(requestId);  
+          const serviceRequestDoc = await transaction.get(requestRef);  
+
+          // Check if the service request exists  
+          if (!serviceRequestDoc.exists) {  
+              return res.status(404).json({ error: 'Service request not found' });  
+          }  
+
+          const serviceRequestData = serviceRequestDoc.data();  
+
+          // Check if this service request has already been accepted by another vendor  
+          if (serviceRequestData.vendorId) {  
+              return res.status(403).json({  
+                  error: 'Service request has already been accepted by another vendor.',  
+                  acceptedVendorId: serviceRequestData.vendorId  
+              });  
+          }  
+
+          // Check if the vendor ID is valid in the service request  
+          if (!serviceRequestData.vendorResponses || !serviceRequestData.vendorResponses[vendorId]) {  
+              return res.status(404).json({ error: `Vendor ID not found in this service request`, vendorId });  
+          }  
+
+          // Update the vendor's response status and the main vendor ID field  
           transaction.update(requestRef, {  
-            [`vendorResponses.${otherVendorId}.status`]: 'unactive'  
+              [`vendorResponses.${vendorId}.status`]: 'pending',  
+              vendorId: vendorId, // Set the accepted vendor's ID  
+              state: 'pending'  
           });  
-        }  
+
+          // Set the status of all other vendors to 'unactive'  
+          Object.keys(serviceRequestData.vendorResponses).forEach((otherVendorId) => {  
+              if (otherVendorId !== vendorId) {  
+                  transaction.update(requestRef, {  
+                      [`vendorResponses.${otherVendorId}.status`]: 'unactive'  
+                  });  
+              }  
+          });  
       });  
-    });  
-  
-    // Return success message  
-    return res.status(200).json({ message: 'Service request accepted successfully' });  
+      const vendorData = await db.collection('vendors').doc(vendorId).get();
+      const vendor = vendorData.data();
+      const fcmToken = vendor.fcmToken;
+      // Return success message  
+      return res.status(200).json({ message: 'Service request accepted successfully', fcmToken });  
   } catch (error) {  
-    // Handle error  
-    return res.status(500).json({ error: `Error accepting service request: ${error.message}` });  
+      // Handle error  
+      return res.status(500).json({ error: `Error accepting service request: ${error.message}` });  
   }  
 };  
 
@@ -533,104 +514,135 @@ exports.cancelServiceRequestByUser = async (req, res) => {
     });
 
     // Return success message
-    return res.status(200).json({ message: 'Service request cancelled by user successfully' });
+    return res.status(200).json({ message: 'Service request cancelled by user successfully', });
   } catch (error) {
     return res.status(500).json({ error: `Error cancelling service request by user: ${error.message}` });
   }
 };
-exports.completeServiceRequest = async (req, res) => {
-  const { userId, vendorId, serviceRequestId } = req.params; // Request parameters
-  const { servicePerformed, userRating } = req.body; // Inputs from user
-
-  try {
-    // Start a Firestore transaction
-    await db.runTransaction(async (transaction) => {
-      const requestRef = db.collection('serviceRequests').doc(serviceRequestId);
-      const vendorRef = db.collection('vendors').doc(vendorId);
-      const userRef = db.collection('users').doc(userId);
-
-      const serviceRequestDoc = await transaction.get(requestRef);
-
-      // Validate service request
-      if (!serviceRequestDoc.exists) {
-        throw new Error("Service request not found");
-      }
-
-      const serviceRequestData = serviceRequestDoc.data();
-
-      // Validate user and vendor involvement
-      if (serviceRequestData.userId !== userId) {
-        throw new Error("Unauthorized: User ID does not match the service request owner");
-      }
-      // if (serviceRequestData.vendorResponses[vendorId].vendorId !== vendorId) {
-      //   throw new Error("Unauthorized: Vendor ID does not match the assigned vendor for this service request");
-      // }
-      
-      if (!Object.keys(serviceRequestData.vendorResponses).includes(vendorId)) {
-        throw new Error("Unauthorized: Vendor ID is not one of the responding vendors");
-      }
-      
-
-      // Ensure service request state allows completion
-      if (serviceRequestData.state !== 'pending') {
-        throw new Error("Service request is not active or pending");
-      }
-
-      // Fetch vendor data
-      const vendorDoc = await transaction.get(vendorRef);
-      if (!vendorDoc.exists) {
-        throw new Error("Vendor not found");
-      }
-
-      const vendorData = vendorDoc.data();
-
-      // Update service request based on servicePerformed
-      const updates = {};
-      if (servicePerformed) {
-        updates.state = "completed";
-        updates.completedAt = Date.now();
-
-        // Update vendor's rating
-        if (userRating !== undefined) {
-          const newRating =
-            ((vendorData.rating || 0) * (vendorData.ratingCount || 0) + userRating) /
-            ((vendorData.ratingCount || 0) + 1);
-
-          transaction.update(vendorRef, {
-            rating: newRating,
-            ratingCount: admin.firestore.FieldValue.increment(1),
-            completedRequests: admin.firestore.FieldValue.increment(1),
-          });
-        }
-      } else {
-        updates.state = "not performed";
-
-        // Penalize vendor for non-performance
-        const penaltyRating = Math.max(0, (vendorData.rating || 0) - 0.5);
-
-        transaction.update(vendorRef, {
-          rating: penaltyRating,
-          incompleteRequests: admin.firestore.FieldValue.increment(1),
-        });
-      }
-
-      // Apply updates to service request
-      transaction.update(requestRef, updates);
-
-      // Log the completion
-      console.log(
-        `Service request ${serviceRequestId} marked as ${updates.state}`
-      );
-    });
-
-    // Respond with success message
-    return res.status(200).json({
-      message: "Service request processed successfully",
-    });
-  } catch (error) {
-    console.error("Error completing service request:", error.message);
-    return res.status(500).json({
-      error: `Error completing service request: ${error.message}`,
-    });
-  }
-};
+exports.completeServiceRequest = async (req, res) => {  
+  const { userId, vendorId, serviceRequestId } = req.params; // Request parameters  
+  const { servicePerformed, userRating } = req.body; // Inputs from user  
+  
+  try {  
+    // Start a Firestore transaction  
+    await db.runTransaction(async (transaction) => {  
+      const requestRef = db.collection("serviceRequests").doc(serviceRequestId);  
+      const vendorRef = db.collection("vendors").doc(vendorId);  
+      const serviceRequestDoc = await transaction.get(requestRef);  
+  
+      // Validate service request  
+      if (!serviceRequestDoc.exists) {  
+        throw new Error("Service request not found");  
+      }  
+      const serviceRequestData = serviceRequestDoc.data();  
+  
+      // Validate user and vendor involvement  
+      if (serviceRequestData.userId !== userId) {  
+        throw new Error("Unauthorized: User ID does not match the service request owner");  
+      }  
+      if (!Object.keys(serviceRequestData.vendorResponses).includes(vendorId)) {  
+        throw new Error("Unauthorized: Vendor ID is not one of the responding vendors");  
+      }  
+  
+      // Ensure service request state allows completion  
+      if (serviceRequestData.state !== "pending") {  
+        throw new Error("Service request is not pending");  
+      }  
+  
+      // Fetch vendor data  
+      const vendorDoc = await transaction.get(vendorRef);  
+      if (!vendorDoc.exists) {  
+        throw new Error("Vendor not found");  
+      }  
+      const vendorData = vendorDoc.data();  
+  
+      // Get service details  
+      const serviceId = serviceRequestData.serviceId; // Extract service ID from service request data  
+      const serviceRef = db.collection("services").doc(serviceId);  
+      const serviceDoc = await transaction.get(serviceRef);  
+      if (!serviceDoc.exists) {  
+        throw new Error("Service details not found");  
+      }  
+      const serviceData = serviceDoc.data();  
+  
+      // Extract vendor commission percentage  
+      const vendorCommission = serviceData.vendorCommission;  
+      if (vendorCommission === undefined) {  
+        throw new Error("Vendor commission information is missing");  
+      }  
+  
+      // Calculate vendor earnings  
+      const servicePrice = serviceRequestData.price;  
+      const vendorEarnings = (servicePrice * vendorCommission) / 100;  
+  
+      // Update service request based on servicePerformed  
+      const updates = {};  
+      const packagesRemaining = serviceRequestData.packages - 1; // Subtract 1 from packages  
+      if (servicePerformed) {  
+        if (packagesRemaining <= 0) {  
+          updates.state = "completed";  
+          updates.completedAt = Date.now();  
+        } else {  
+          updates.packages = packagesRemaining;  
+        }  
+      } else {  
+        updates.state = "not performed";  
+        // Penalize vendor for non-performance  
+        const penaltyRating = Math.max(0, (vendorData.rating || 0) - 0.5);  
+        transaction.update(vendorRef, {  
+          rating: penaltyRating,  
+          incompleteRequests: admin.firestore.FieldValue.increment(1),  
+        });  
+      }  
+  
+      // Update the service request  
+      transaction.update(requestRef, updates);  
+  
+      // Update vendor's rating and credits  
+      if (userRating !== undefined) {  
+        const newRating =  
+          ((vendorData.rating || 0) * (vendorData.ratingCount || 0) + userRating) /  
+          ((vendorData.ratingCount || 0) + 1);  
+        transaction.update(vendorRef, {  
+          rating: newRating,  
+          ratingCount: admin.firestore.FieldValue.increment(1),  
+          completedRequests: admin.firestore.FieldValue.increment(1),  
+          credits: admin.firestore.FieldValue.increment(vendorEarnings), // Add credits  
+        });  
+      } else {  
+        transaction.update(vendorRef, {  
+          credits: admin.firestore.FieldValue.increment(vendorEarnings), // Add credits  
+        });  
+      }  
+  
+      // Log the completion and vendor commission  
+      db.collection("logs").add({  
+        type: "serviceCompletion",  
+        userId: userId,  
+        vendorId: vendorId,  
+        serviceRequestId: serviceRequestId,  
+        serviceName: serviceData.name, // Use service name from service data  
+        servicePrice: servicePrice,  
+        vendorCommission: vendorCommission,  
+        vendorEarnings: vendorEarnings,  
+        log: `Service request ${serviceRequestId} processed. Vendor earned ${vendorEarnings} credits.`,  
+      });  
+  
+      // Respond based on the number of remaining packages  
+      if (packagesRemaining <= 0) {  
+        return res.status(200).json({ message: "All services are completed" });  
+      } else {  
+        return res.status(200).json({  
+          message: `${packagesRemaining} services remaining`,  
+          times: packagesRemaining,  
+          serviceName: serviceData.name, // Pass the service name in the response  
+        });  
+      }  
+    });  
+  } catch (error) {  
+    console.error("Error completing service request:", error.message);  
+    return res.status(500).json({  
+      error: `Error completing service request: ${error.message}`,  
+    });  
+  }  
+};  

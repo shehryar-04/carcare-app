@@ -6,43 +6,74 @@ const handleErrorResponse = (res, error, message) =>
 
 // Send message to vendor
 exports.sendMessageToVendor = async (req, res) => {  
-  const { userId, vendorId } = req.params;  
-  const { message, senderType } = req.body;  
-
-  // Validate message and senderType  
-  if (!message) {  
-      return res.status(400).send('Message is required.');  
-  }  
-  if (!['user', 'vendor'].includes(senderType)) {  
-      return res.status(400).send('Invalid sender type.');  
-  }  
-
-  try {  
-      // Create or get the chat document ID (sorted lexicographically to ensure consistent ordering)  
-      const chatDocId = userId < vendorId ? `${userId}_${vendorId}` : `${vendorId}_${userId}`;  
-      const chatRef = db.collection('chats').doc(chatDocId);  
-
-      // Check if chat document exists and add random text if it doesn't  
-      const doc = await chatRef.get();  
-      if (!doc.exists) {  
-          // Generate a random string for the random text field  
-          const randomText = crypto.randomBytes(20).toString('hex');  
-          await chatRef.set({ randomText }); // Set random text when creating the document  
-      }  
-
-      // Create a new message document in the subcollection 'messages'  
-      const messageRef = chatRef.collection('messages').doc(); // Auto-generated ID  
-      await messageRef.set({  
-          senderId: senderType === 'user' ? userId : vendorId,  
-          senderType,  
-          message,  
-          timestamp: admin.firestore.FieldValue.serverTimestamp(), // Add server timestamp  
-      });  
-
-      res.status(201).json({ message: 'Message sent successfully' });  
-  } catch (error) {  
-      handleErrorResponse(res, error, 'Error sending message:');  
-  }  
+    const { userId, vendorId } = req.params;  
+    const { message, senderType } = req.body;  
+  
+    // Validate message and senderType  
+    if (!message) {  
+        return res.status(400).json({ error: 'Message is required.' });  
+    }  
+    if (!['user', 'vendor'].includes(senderType)) {  
+        return res.status(400).json({ error: 'Invalid sender type.' });  
+    }  
+  
+    try {  
+        // Create or get the chat document ID (sorted lexicographically to ensure consistent ordering)  
+        const chatDocId = userId < vendorId ? `${userId}_${vendorId}` : `${vendorId}_${userId}`;  
+        const chatRef = db.collection('chats').doc(chatDocId);  
+  
+        // Check if chat document exists and add random text if it doesn't  
+        const doc = await chatRef.get();  
+        if (!doc.exists) {  
+            // Generate a random string for the random text field  
+            const randomText = crypto.randomBytes(20).toString('hex');  
+            await chatRef.set({ randomText }); // Set random text when creating the document  
+        }  
+  
+        // Create a new message document in the subcollection 'messages'  
+        const messageRef = chatRef.collection('messages').doc(); // Auto-generated ID  
+        await messageRef.set({  
+            senderId: senderType === 'user' ? userId : vendorId,  
+            senderType,  
+            message,  
+            timestamp: admin.firestore.FieldValue.serverTimestamp(), // Add server timestamp  
+        });  
+  
+        // If the sender is a vendor, fetch the user's FCM token  
+        if (senderType === 'vendor') {  
+            const userRef = db.collection('users').doc(userId);  
+            const userDoc = await userRef.get();  
+            if (!userDoc.exists) {  
+                console.log('User document does not exist');  
+            } else {  
+                const user = userDoc.data();  
+                const userFcmToken = user.fcmToken; // assuming the token is stored in the fcmToken field  
+                res.status(201).json({ message: 'Message sent successfully',
+                    fcmToken:userFcmToken
+                 });  
+            }  
+        }  
+        else{
+            const vendorRef = db.collection('vendors').doc(vendorId);
+            const vendorDoc= await vendorRef.get();
+            if(!vendorDoc.exists){
+                console.log('Vendor document does not exist');
+            }    
+            else{
+                const vendor = vendorDoc.data();
+                const vendorFcmToken = vendor.fcmToken; // assuming the token is stored in the fcmToken field  
+                res.status(201).json({ message: 'Message sent successfully',
+                    fcmToken:vendorFcmToken
+                 });  
+            }
+        }
+  
+        // res.status(201).json({ message: 'Message sent successfully',
+        //     fcmToken:userFcmToken
+        //  });  
+    } catch (error) {  
+        handleErrorResponse(res, error, 'Error sending message:');  
+    }  
 };  
   
 exports.getAllChatsForUser = async (req, res) => {  
@@ -53,7 +84,7 @@ exports.getAllChatsForUser = async (req, res) => {
       const snapshot = await chatsRef.get();  
 
       if (snapshot.empty) {  
-          res.status(404).send('No chats found.');  
+          res.status(404).json({ error: 'No chats found.' });  
           return;  
       }  
 
@@ -103,14 +134,14 @@ exports.getAllChatsForUser = async (req, res) => {
       await Promise.all([...vendorDetailsPromises, ...latestMessagePromises]);  
 
       if (chats.length === 0) {  
-          res.status(404).send('No chats found for user.');  
+          res.status(404).json({ error: 'No chats found for the user.' });  
           return;  
       }  
 
       res.status(200).json(chats); // Send the chats array with vendor details and latest messages as a JSON response  
   } catch (error) {  
       console.error('Error retrieving chat documents:', error);  
-      res.status(500).send('Error retrieving chats');  
+      res.status(500).json({ error: 'An error occurred while retrieving chat documents.' });  
   }  
 };
 
@@ -122,7 +153,7 @@ exports.getAllChatsForVendor = async (req, res) => {
         const snapshot = await chatsRef.get();  
 
         if (snapshot.empty) {  
-            res.status(404).send('No chats found.');  
+            res.status(404).json({ error: 'No chats found.' });  
             return;  
         }  
 
@@ -172,13 +203,13 @@ exports.getAllChatsForVendor = async (req, res) => {
         await Promise.all([...userDetailsPromises, ...latestMessagePromises]);  
 
         if (chats.length === 0) {  
-            res.status(404).send('No chats found for vendor.');  
+            res.status(404).json({ error: 'No chats found for the vendor.' });  
             return;  
         }  
 
         res.status(200).json(chats); // Send the chats array with user details and latest messages as a JSON response  
     } catch (error) {  
         console.error('Error retrieving chat documents:', error);  
-        res.status(500).send('Error retrieving chats');  
+        res.status(500).json({ error: 'An error occurred while retrieving chat documents.' });  
     }  
 };

@@ -3,7 +3,7 @@ const axios = require('axios');
 // const firebase = require('../config/firebaseCredentials.json')
   
 const auth = new GoogleAuth({  
-  keyFile: '../config/firebaseCredentials.json', // Path to your downloaded JSON key file  
+  keyFile: '../', // Path to your downloaded JSON key file  
   scopes: 'https://www.googleapis.com/auth/firebase.messaging'  
 });  
   

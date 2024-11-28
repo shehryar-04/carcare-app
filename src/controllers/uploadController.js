@@ -7,11 +7,11 @@ const handleErrorResponse = (res, error, message) =>
 exports.uploadImage = (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).send('No file uploaded.');
+      return res.status(400).json({ error: 'No file uploaded.' });
     }
     const { filename } = req.file;
     const imagePath = `/uploads/images/${filename}`;
-    res.status(201).send(`Image uploaded successfully: ${imagePath}`);
+    res.status(201).json({message:`Image uploaded successfully: ${imagePath}`});
   } catch (error) {
     handleErrorResponse(res, error, 'Error uploading image');
   }
@@ -26,7 +26,7 @@ exports.getImage = (req, res) => {
     if (fs.existsSync(imagePath)) {
       res.sendFile(imagePath);
     } else {
-      res.status(404).send('Image not found.');
+      res.status(404).json({ error: 'Image not found.' });
     }
   } catch (error) {
     handleErrorResponse(res, error, 'Error retrieving image');
@@ -41,7 +41,7 @@ exports.getAllImages = (req, res) => {
     fs.readdir(directoryPath, (err, files) => {
       if (err) {
         console.log(err);
-        return res.status(500).send('Unable to scan directory.');
+        return res.status(500).json({ error: 'Error retrieving images.' });
       }
       const imagePaths = files.map((file) => `/uploads/images/${file}`);
       res.status(200).json(imagePaths);
@@ -59,7 +59,7 @@ exports.deleteImage = (req, res) => {
 
     if (fs.existsSync(imagePath)) {
       fs.unlinkSync(imagePath);
-      res.status(200).send('Image deleted successfully.');
+      res.status(200).json({ message: 'Image deleted successfully.' });
     } else {
       res.status(404).send('Image not found.');
     }

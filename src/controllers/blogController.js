@@ -7,7 +7,7 @@ exports.createBlog = async (req, res) => {
   try {
     const { title, content, author, image } = req.body;
     await blogService.createBlog(title, content, author, image);
-    res.status(201).send('Blog created successfully.');
+    res.status(201).json({ message: 'Blog created successfully.' });
   } catch (error) {
     handleErrorResponse(res, error, 'Error creating blog');
   }
@@ -40,7 +40,7 @@ exports.updateBlog = async (req, res) => {
     const { id } = req.params;
     const { title, content, author, image } = req.body;
     await blogService.updateBlog(id, title, content, author, image);
-    res.status(200).send('Blog updated successfully.');
+    res.status(200).json({ message: 'Blog updated successfully.' });
   } catch (error) {
     handleErrorResponse(res, error, 'Error updating blog');
   }
@@ -51,7 +51,7 @@ exports.deleteBlog = async (req, res) => {
   try {
     const { id } = req.params;
     await blogService.deleteBlog(id);
-    res.status(200).send('Blog deleted successfully.');
+    res.status(200).json({ message: 'Blog deleted successfully.' });
   } catch (error) {
     handleErrorResponse(res, error, 'Error deleting blog');
   }

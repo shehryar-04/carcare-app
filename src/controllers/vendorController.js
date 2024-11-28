@@ -1,19 +1,19 @@
 const vendorService = require('../services/vendorService');  
 
 exports.registerVendor = async (req, res) => {  
-    const { name, email, phoneNumber, location, area, imageServices,services, profilePicture,credits } = req.body;  
+    const { area, type, CNIC_front, CNIC_back, CNIC,services, profilePicture,credits,fcmToken,location } = req.body;  
   
     // Validate required fields  
-    if (!name || !phoneNumber || !location) {  
-        return res.status(400).send('Name, phone number, and location are required.');  
+    if (!CNIC_front || !CNIC_back || !CNIC) {  
+        return res.status(400).send('Enter CNIC details');  
     }  
     
-    if (!location.latitude || !location.longitude) {  
-        return res.status(400).send('Location must include latitude and longitude.');  
+    if (!area) {  
+        return res.status(400).send('Enter Area to operate');  
     }  
     try {  
         const vendor = await vendorService.createVendor({  
-            name, email, phoneNumber, location, area,imageServices, profilePicture,services,credits
+            type,CNIC_front, CNIC_back, CNIC, area, profilePicture,services,credits,fcmToken,location
         });  
         res.status(201).json({  
             message: 'Vendor registered successfully',  

@@ -96,21 +96,21 @@ exports.resendVerificationEmail = async (req, res) => {
 
     // Validate user ID
     if (!uid) {
-      return res.status(400).send('User ID is required.');
+      return res.status(400).json({ error: 'User ID is required.' });
     }
     // Check if the user exists in Firestore
     const userRef = db.collection('users').doc(uid);
     const userDoc = await userRef.get();
 
     if (!userDoc.exists) {
-      return res.status(404).send('User not found.');
+      return res.status(404).json({ error: 'User not found.' });
     }
 
     const userData = userDoc.data();
 
     // Check if email is verified
     if (userData.emailVerified) {
-      return res.status(400).send('Email is already verified.');
+      return res.status(400).json({ error: 'Email is already verified.' });
     }
 
     // Prepare email options
@@ -144,7 +144,7 @@ exports.addLocation = async (req, res) => {
     const { locationName } = req.body;  
   
     if (!locationName) {  
-      return res.status(400).send('Location name is required.');  
+      return res.status(400).json({ error: 'Location name is required.' });  
     }  
   
     await userService.addLocation(uid, locationName);  
@@ -162,7 +162,7 @@ exports.deleteLocation = async (req, res) => {
     const { location } = req.body;  
   
     if (!location) {  
-      return res.status(400).send('Location data is required.');  
+      return res.status(400).json({ error: 'Location name is required.' });  
     }  
   
     await userService.deleteLocation(uid, location);  
