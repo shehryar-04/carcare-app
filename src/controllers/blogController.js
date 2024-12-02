@@ -5,8 +5,8 @@ const handleErrorResponse = (res, error, message) =>
 // Create a new blog
 exports.createBlog = async (req, res) => {
   try {
-    const { title, content, author, image } = req.body;
-    await blogService.createBlog(title, content, author, image);
+    const { title, content, author } = req.body;
+    await blogService.createBlog(title, content, author);
     res.status(201).json({ message: 'Blog created successfully.' });
   } catch (error) {
     handleErrorResponse(res, error, 'Error creating blog');

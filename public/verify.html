@@ -156,12 +156,12 @@
             }  
   
             // Update the user's verification status via API call  
-            fetch(`http://localhost:3000/api/users/${uid}/verification`, {  
+            fetch(`http://carcarebaked.azurewebsites.net/api/user/${uid}`, {  
                 method: 'PUT', // Use PUT method for updating  
                 headers: {  
                     'Content-Type': 'application/json',  
-                },  
-                body: JSON.stringify({ isVerified: true }) // Send the verification status  
+                },    
+                body: JSON.stringify({ emailVerified: true }) // Send the verification status  
             })  
             .then(response => {  
                 if (!response.ok) {  
@@ -174,7 +174,7 @@
             })  
             .catch(error => {  
                 console.error('Error updating verification status:', error);  
-                // document.querySelector('.container').innerHTML = '<p>Failed to update user status. Please contact support.</p>';  
+                document.querySelector('.container').innerHTML = '<p>Failed to update user status. Please contact support.</p>';  
             });  
         };  
     </script>  

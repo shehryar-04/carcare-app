@@ -10,8 +10,8 @@ exports.uploadImage = (req, res) => {
       return res.status(400).json({ error: 'No file uploaded.' });
     }
     const { filename } = req.file;
-    const imagePath = `/uploads/images/${filename}`;
-    res.status(201).json({message:`Image uploaded successfully: ${imagePath}`});
+    const imagePath = filename;
+    res.status(201).json({image:imagePath});
   } catch (error) {
     handleErrorResponse(res, error, 'Error uploading image');
   }

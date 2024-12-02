@@ -5,8 +5,8 @@ const handleErrorResponse = (res, error, message) =>
 // Create a new banner
 exports.createBanner = async (req, res) => {
   try {
-    const { title, description, link, image } = req.body;
-    await bannerService.createBanner(title, description, link, image);
+    const {image } = req.body;
+    await bannerService.createBanner(image);
     res.status(201).json({ message: 'Banner created successfully.' });
   } catch (error) {
     handleErrorResponse(res, error, 'Error creating banner');
@@ -38,9 +38,9 @@ exports.getAllBanners = async (req, res) => {
 exports.updateBanner = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, link } = req.body;
+  
     const file = req.file;
-    await bannerService.updateBanner(id, title, description, link, file);
+    await bannerService.updateBanner(id, file);
     res.status(200).json({ message: 'Banner updated successfully.' });
   } catch (error) {
     handleErrorResponse(res, error, 'Error updating banner');

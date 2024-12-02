@@ -1,7 +1,7 @@
 const { db } = require('../config/firebaseconfig');
 
-exports.createBanner = async (title, description, link, image) => {
-  const bannerData = { title, description, link, image, createdAt: new Date() };
+exports.createBanner = async (image) => {
+  const bannerData = {  image, createdAt: new Date() };
   await db.collection('banners').add(bannerData);
 };
 
@@ -17,8 +17,8 @@ exports.getAllBanners = async () => {
   return bannersSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 };
 
-exports.updateBanner = async (id, title, description, link, image) => {
-  const updateData = { title, description, link, image, updatedAt: new Date() };
+exports.updateBanner = async (id,image) => {
+  const updateData = {  image, updatedAt: new Date() };
   await db.collection('banners').doc(id).update(updateData);
 };
 

@@ -1,7 +1,7 @@
 const { db } = require('../config/firebaseconfig');
 
-exports.createBlog = async (title, content, author, image) => {
-  const blogData = { title, content, author, image, createdAt: new Date() };
+exports.createBlog = async (title, content, author ) => {
+  const blogData = { title, content, author,createdAt: new Date() };
   await db.collection('blogs').add(blogData);
 };
 

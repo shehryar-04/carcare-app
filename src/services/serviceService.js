@@ -18,15 +18,18 @@ exports.getAllServices = async () => {
 };
 
 exports.updateService = async (
-  id,
   name,
-  heading,
   description,
-  buttons,
+  packages,
   image,
-  price
+  vendorCommission
 ) => {
-  const updateData = { name, heading, description, buttons, image,  price };
+  const updateData = {  
+    name,
+    description,
+    packages,
+    image,
+    vendorCommission };
   await db.collection('services').doc(id).update(updateData);
 };
 

@@ -47,20 +47,31 @@ exports.getAllServices = async (req, res) => {
 exports.updateService = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, heading, description, buttons, image } = req.body;
-    await serviceService.updateService(
-      id,
-      name,
-      heading,
-      description,
-      buttons,
-      image
-    );
+    const updates = req.body;
+
+    // Check if updates object is empty
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).send('At least one field must be provided for update.');
+    }
+
+    // Optional: Validate specific fields if needed (for example, if packages is an array or vendorCommission is a number)
+    if (updates.packages && !Array.isArray(updates.packages)) {
+      return res.status(400).send('Packages should be an array.');
+    }
+
+    if (updates.vendorCommission && typeof updates.vendorCommission !== 'number') {
+      return res.status(400).send('Vendor commission should be a number.');
+    }
+
+    // Update the service with only the provided fields
+    await serviceService.updateService(id, updates);
+
     res.status(200).json({ message: 'Service updated successfully.' });
   } catch (error) {
     handleErrorResponse(res, error, 'Error updating service');
   }
 };
+
 
 // Delete a service
 exports.deleteService = async (req, res) => {
@@ -91,7 +102,8 @@ exports.requestService = async (req, res) => {
       location,
       vendorId = null,
       packages,
-      serviceId
+      serviceId,
+      serviceType
     } = req.body;
 
     // Validate the incoming data
@@ -133,7 +145,8 @@ exports.requestService = async (req, res) => {
       vendorId,
       packages,
       createdAt:  admin.firestore.FieldValue.serverTimestamp(),
-      expiryTime, // Store expiry time
+      expiryTime,
+      serviceType // Store expiry time
     };
 
     // Save the request to Firestore
@@ -157,7 +170,7 @@ exports.requestService = async (req, res) => {
         await db.collection('serviceRequests').doc(docRef.id).update(vendorUpdates);
         console.log(`Service request ${docRef.id} cancelled due to expiry.`);
       }
-    }, 3* 60 * 1000); // Run after 24 hours
+    }, 3*60*60*1000); // Run after 24 hours
 
     return res.status(201).json({ id: docRef.id, ...bookingDetails });
   } catch (error) {
@@ -432,52 +445,51 @@ cron.schedule('0 * * * *', async () => {
 // Vendor cancels their participation in a service request
 exports.cancelServiceRequest = async (req, res) => {  
   const { requestId, vendorId } = req.params;  
+
   try {  
-      // Start a Firestore transaction to ensure data consistency  
       await db.runTransaction(async (transaction) => {  
           const requestRef = db.collection('serviceRequests').doc(requestId);  
           const serviceRequestDoc = await transaction.get(requestRef);  
 
-          // Check if the service request exists  
           if (!serviceRequestDoc.exists) {  
               return res.status(404).json({ error: 'Service request not found' });  
           }  
 
           const serviceRequestData = serviceRequestDoc.data();  
 
-          // Check if the vendor ID is valid in the service request  
           if (!serviceRequestData.vendorResponses || !serviceRequestData.vendorResponses[vendorId]) {  
               return res.status(404).json({ error: `Vendor ID not found in this service request`, vendorId });  
           }  
 
-          // Update the vendor's response status to 'unactive'  
+          // Update the vendor's response status to 'inactive'  
           transaction.update(requestRef, {  
-              [`vendorResponses.${vendorId}.status`]: 'unactive'  
+              [`vendorResponses.${vendorId}.status`]: 'inactive'  
           });  
 
-          // Check if all vendor responses are now 'unactive'  
+          // Check if all vendor responses are now 'inactive'  
           const allVendorsCancelled = Object.values(serviceRequestData.vendorResponses).every(  
-              (response) => response.status === 'unactive'  
+              (response) => response.status === 'inactive'  
           );  
 
-          // If all vendors have cancelled, update the service request state to 'cancelled'  
           if (allVendorsCancelled) {  
               transaction.update(requestRef, { state: 'cancelled' });  
           }  
 
-          // Update the vendor's data to reflect the cancellation  
           const vendorRef = db.collection('vendors').doc(vendorId);  
-            
-          // Use Firestore's FieldValue to add the requestId to the serviceRequests array  
+          const cancellationDetails = {  
+              requestId: requestId,  
+              cancelledDate: new Date(), // capturing the cancellation date  
+              serviceRequestDetails: serviceRequestData // storing the entire service request data  
+          };  
+
+          // Update the vendor's data to include detailed cancellation information  
           transaction.update(vendorRef, {  
-              serviceRequests: admin.firestore.FieldValue.arrayUnion(requestId) // Add requestId to the serviceRequests array  
+              cancelledServiceRequests: admin.firestore.FieldValue.arrayUnion(cancellationDetails)  
           });  
       });  
 
-      // Return success message  
       return res.status(200).json({ message: 'Vendor cancelled service request successfully' });  
   } catch (error) {  
-      // Handle error  
       return res.status(500).json({ error: `Error cancelling service request: ${error.message}` });  
   }  
 };  
@@ -521,7 +533,7 @@ exports.cancelServiceRequestByUser = async (req, res) => {
 };
 exports.completeServiceRequest = async (req, res) => {  
   const { userId, vendorId, serviceRequestId } = req.params; // Request parameters  
-  const { servicePerformed, userRating } = req.body; // Inputs from user  
+  const { servicePerformed, userRating, singleService } = req.body; // Inputs from user  
   
   try {  
     // Start a Firestore transaction  
@@ -577,26 +589,40 @@ exports.completeServiceRequest = async (req, res) => {
   
       // Update service request based on servicePerformed  
       const updates = {};  
-      const packagesRemaining = serviceRequestData.packages - 1; // Subtract 1 from packages  
+      let packagesRemaining = serviceRequestData.packages; // Keep current packages count  
+  
       if (servicePerformed) {  
-        if (packagesRemaining <= 0) {  
-          updates.state = "completed";  
-          updates.completedAt = Date.now();  
-        } else {  
-          updates.packages = packagesRemaining;  
+        if (!singleService) {  
+          packagesRemaining -= 1; // Subtract 1 from packages only if not single service  
+          if (packagesRemaining <= 0) {  
+            updates.state = "completed";  
+            updates.completedAt = Date.now();  
+          } else {  
+            updates.packages = packagesRemaining; // Update packages remaining  
+          }  
         }  
       } else {  
-        updates.state = "not performed";  
-        // Penalize vendor for non-performance  
-        const penaltyRating = Math.max(0, (vendorData.rating || 0) - 0.5);  
-        transaction.update(vendorRef, {  
-          rating: penaltyRating,  
-          incompleteRequests: admin.firestore.FieldValue.increment(1),  
-        });  
+        // If service was not performed  
+        if (singleService || (packagesRemaining <= 1)) {  
+          // Do not decrement packages or change state if it's a single service or if there is only one package remaining  
+          // Log the condition to indicate service was not performed  
+          updates.message = "Service was not performed.";  
+        } else {  
+          // Only mark as not performed if not singleService and packages are more than 1  
+          updates.state = "not performed";  
+          // Penalize vendor for non-performance  
+          const penaltyRating = Math.max(0, (vendorData.rating || 0) - 0.5);  
+          transaction.update(vendorRef, {  
+            rating: penaltyRating,  
+            incompleteRequests: admin.firestore.FieldValue.increment(1),  
+          });  
+        }  
       }  
   
-      // Update the service request  
-      transaction.update(requestRef, updates);  
+      // Update the service request only if there are updates  
+      if (Object.keys(updates).length > 0) {  
+        transaction.update(requestRef, updates);  
+      }  
   
       // Update vendor's rating and credits  
       if (userRating !== undefined) {  
@@ -629,7 +655,12 @@ exports.completeServiceRequest = async (req, res) => {
       });  
   
       // Respond based on the number of remaining packages  
-      if (packagesRemaining <= 0) {  
+      if (singleService) {  
+        return res.status(200).json({  
+          message: "Service was not performed.",  
+          remainingServices: packagesRemaining, // Indicate the number of remaining services  
+        });  
+      } else if (packagesRemaining <= 0) {  
         return res.status(200).json({ message: "All services are completed" });  
       } else {  
         return res.status(200).json({  

@@ -24,25 +24,29 @@ exports.registerVendor = async (req, res) => {
     }  
 };  
 
-exports.updateVendor = async (req, res) => {  
-    const { vendorId } = req.params;  
-    const { name, email, phoneNumber, location, services , verification } = req.body;  
-  
-    if (!name && !email && !phoneNumber && !location && !services && verification === undefined) {  
-        return res.status(400).send('At least one field must be provided for update.');  
-    }  
-  
-    if (location && (!location.latitude || !location.longitude)) {  
-        return res.status(400).send('Location must include latitude and longitude if provided.');  
-    }  
-  
-    try {  
-        await vendorService.updateVendor(vendorId, { name, email, phoneNumber, location, services, verification });  
-        res.status(200).json({ message: "Vendor data changed successfully" });  
-    } catch (error) {  
-        res.status(500).send('Error updating vendor information: ' + error.message);  
-    }  
-};  
+exports.updateVendor = async (req, res) => {
+    const { vendorId } = req.params;
+    const updates = req.body;
+
+    // Check if updates object is empty
+    if (Object.keys(updates).length === 0) {
+        return res.status(400).send('At least one field must be provided for update.');
+    }
+
+    // If location is provided, validate its structure
+    if (updates.location && (!updates.location.latitude || !updates.location.longitude)) {
+        return res.status(400).send('Location must include latitude and longitude if provided.');
+    }
+
+    try {
+        // Update the vendor with only the provided fields
+        await vendorService.updateVendor(vendorId, updates);
+        res.status(200).json({ message: "Vendor data updated successfully" });
+    } catch (error) {
+        res.status(500).send('Error updating vendor information: ' + error.message);
+    }
+};
+
 exports.getVendors = async (req, res) => {  
     const { verified, area, services } = req.query;  
   

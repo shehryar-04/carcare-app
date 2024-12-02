@@ -60,7 +60,7 @@ const {
   updateArea,
   deleteArea,
 } = require('../controllers/areaController');
-const { sendMessageToVendor,getAllChatsForUser } = require('../controllers/chatController');
+const { sendMessageToVendor,getAllChatsForUser,getAllChatsForVendor } = require('../controllers/chatController');
 const vendorController = require('../controllers/vendorController');
 const upload = require('../middlewares/multerConfig');
 const notification = require('../controllers/toAllNotifiction')
@@ -108,7 +108,9 @@ router.put('/blog/:id', updateBlog);
 router.delete('/blog/:id', deleteBlog);
 // Chat-related routes
 router.post('/chat/:userId/:vendorId', sendMessageToVendor);
-router.get('/chats/:userId', getAllChatsForUser);  
+router.get('/chats/user/:userId', getAllChatsForUser);  
+router.get('/chats/vendor/:vendorId', getAllChatsForVendor);  
+
 // Area-related routes
 router.post('/areas', createArea);
 router.get('/areas', getAllAreas);
