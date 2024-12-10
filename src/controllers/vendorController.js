@@ -1,7 +1,19 @@
 const vendorService = require('../services/vendorService');  
 
 exports.registerVendor = async (req, res) => {  
-    const { area, type, CNIC_front, CNIC_back, CNIC,services, profilePicture,credits,fcmToken,location } = req.body;  
+    const { 
+            displayName,
+            phoneNumber ,
+            type,
+            CNIC_front,
+            CNIC_back,
+            CNIC ,
+            area ,
+            imageUrl,
+            fcmToken,
+            location ,
+            services,
+          } = req.body;  
   
     // Validate required fields  
     if (!CNIC_front || !CNIC_back || !CNIC) {  
@@ -13,7 +25,17 @@ exports.registerVendor = async (req, res) => {
     }  
     try {  
         const vendor = await vendorService.createVendor({  
-            type,CNIC_front, CNIC_back, CNIC, area, profilePicture,services,credits,fcmToken,location
+            displayName,
+            phoneNumber ,
+            type,
+            CNIC_front,
+            CNIC_back,
+            CNIC ,
+            area ,
+            imageUrl,
+            fcmToken,
+            location ,
+            services,
         });  
         res.status(201).json({  
             message: 'Vendor registered successfully',  

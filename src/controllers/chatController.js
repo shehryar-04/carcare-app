@@ -62,7 +62,7 @@ exports.sendMessageToVendor = async (req, res) => {
   
         return res.status(201).json({  
             message: 'Message sent successfully',  
-            fcmToken  
+            fcmToken:fcmToken
         });  
   
     } catch (error) {  

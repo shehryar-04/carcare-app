@@ -63,7 +63,9 @@ const {
 const { sendMessageToVendor,getAllChatsForUser,getAllChatsForVendor } = require('../controllers/chatController');
 const vendorController = require('../controllers/vendorController');
 const upload = require('../middlewares/multerConfig');
-const notification = require('../controllers/toAllNotifiction')
+// const notification = require('../controllers/toAllNotifiction')
+const notificationTopic = require('../controllers/sendNotificationToTopic')
+const notificationToken = require('../controllers/sendNotificationToToken')
 
 const router = express.Router();
 
@@ -135,6 +137,7 @@ router.get('/vendors', vendorController.getVendors);
 router.get('/vendor/:vendorId', vendorController.getVendorById);
 router.delete('/vendor/:vendorId',vendorController.deleteVendor)
 
-router.post('/send-notification',notification.sendNotification)
+router.post('/send-notification-topic',notificationTopic)
+router.post('/send-notification-token',notificationToken)
 
 module.exports = router;
