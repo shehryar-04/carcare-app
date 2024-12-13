@@ -15,7 +15,7 @@ const transporter = nodemailer.createTransport({
   },
 });
   
-exports.createUser = async (displayName, email, phoneNumber, password, fcmToken, image = null,vendorid=null) => {
+exports.createUser = async (displayName, email, phoneNumber, password, fcmToken, image = null, vendorid = null) => {
   const existingUser = await admin
     .auth()
     .getUserByEmail(email)
@@ -27,24 +27,41 @@ exports.createUser = async (displayName, email, phoneNumber, password, fcmToken,
     });
 
   if (existingUser) {
-    // User exists, check Firestore for additional details
+    // Check if the user has signed in using a different provider
+    const providerIds = existingUser.providerData.map((provider) => provider.providerId);
+
+    if (!providerIds.includes('password')) {
+      // Conflict: User exists but signed in using a different method (e.g., Google)
+      return {
+        status: 400,
+        message: 'User already exists with a different sign-in method.',
+        userId: existingUser.uid,
+        emailVerified: existingUser.emailVerified,
+     
+      };
+    }
+
+    // User exists and uses email/password, check Firestore for additional details
     const userRef = db.collection('users').doc(existingUser.uid);
     const userDoc = await userRef.get();
 
     if (userDoc.exists) {
       const userData = userDoc.data();
-      // If the user email is verified (like with Google login), no need to send the verification email
       if (userData.emailVerified || existingUser.emailVerified) {
         return {
-          message: 'User already registered and email is verified.',
+          status: 409,
+          message: 'User already exists and email is verified.',
           userId: existingUser.uid,
           emailVerified: true,
+          // provider: existingUser.providerData, // Return provider details
         };
       } else {
         return {
-          message: 'User already registered, but email is not verified.',
+          status: 409,
+          message: 'User already exists but email is not verified.',
           userId: existingUser.uid,
           emailVerified: false,
+          // provider: existingUser.providerData, // Return provider details
         };
       }
     }
@@ -66,36 +83,39 @@ exports.createUser = async (displayName, email, phoneNumber, password, fcmToken,
            Verify Email
         </a>
       </p>
-      
-      <p style=text-align:center;font-size:30px;>Thank you!</p>
+      <p>Thank you!</p>
     `,
   };
-  
 
   try {
     await transporter.sendMail(mailOptions);
   } catch (error) {
-    // If there's an error sending the email, delete the user from Firebase Authentication and Firestore
     await admin.auth().deleteUser(userRecord.uid);
     await db.collection('users').doc(userRecord.uid).delete();
     throw new Error('Error sending verification email. Please try again.');
   }
 
-  // Add user to Firestore with FCM token
   await db.collection('users').doc(userRecord.uid).set({
     displayName,
     email,
     phoneNumber,
-    emailVerified: false, // Initially false
+    emailVerified: false,
     locations: [],
     fcmToken,
     image,
     isVendor: false,
-    vendorid
+    vendorid,
   });
 
-  return userRecord.uid;
+  return {
+    status: 201, // Success status code
+    message: 'User created successfully. Please verify your email.',
+    userId: userRecord.uid,
+    emailVerified: false,
+  };
 };
+
+
   
 
 exports.verifyEmail = async (uid) => {

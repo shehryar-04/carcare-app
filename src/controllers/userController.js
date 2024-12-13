@@ -12,25 +12,27 @@ const transporter = nodemailer.createTransport({
 });
 
 // Create new user 
-exports.createUser = async (req, res) => {  
-  try {  
-    const { displayName, email, phoneNumber, password, fcmToken } = req.body;  
-    const uid = await userService.createUser(  
-      displayName,  
-      email,  
-      phoneNumber,  
-      password,  
-      fcmToken  // Pass the FCM token to the service  
-    );  
-    res.status(201).json({  
-      message: 'Please check your email to verify your account.',  
-      userId: uid,  
-      emailVerified: false,  
-    });  
-  } catch (error) {  
-    handleErrorResponse(res, error, 'Error creating user');  
-  }  
-};  
+exports.createUser = async (req, res) => {
+  try {
+    const { displayName, email, phoneNumber, password, fcmToken } = req.body;
+
+    // Call userService.createUser and get the response
+    const createUserResponse = await userService.createUser(
+      displayName,
+      email,
+      phoneNumber,
+      password,
+      fcmToken
+    );
+
+    // Return the response with the appropriate status code
+    return res.status(createUserResponse.status).json(createUserResponse);
+  } catch (error) {
+    handleErrorResponse(res, error, 'Error creating user');
+  }
+};
+
+
 
 // Verify email
 exports.verifyEmail = async (req, res) => {

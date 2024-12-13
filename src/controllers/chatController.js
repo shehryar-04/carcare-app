@@ -38,6 +38,7 @@ exports.sendMessageToVendor = async (req, res) => {
             senderType,  
             message,  
             timestamp: admin.firestore.FieldValue.serverTimestamp(), // Add server timestamp  
+            isSeen: false,
         });  
   
         // Fetch FCM token based on sender type  
