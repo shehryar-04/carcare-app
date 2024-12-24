@@ -234,12 +234,24 @@ exports.updateServiceRequestAllFields = async (req, res) => {
 };
 
 // update service request
+// update service request
 exports.updateServiceRequest = async (req, res) => {
   const { id } = req.params;
   const updates = req.body;
   try {
     const docRef = db.collection('serviceRequests').doc(id);
     await docRef.update(updates);
+
+    if (updates.step) {
+      const serviceRequestDoc = await docRef.get();
+      const userId = serviceRequestDoc.data().userId;
+      const userDoc = await db.collection('users').doc(userId).get();
+      const fcmToken = userDoc.data().fcmToken;
+      return res
+        .status(200)
+        .json({ message: 'Service request updated successfully', fcmToken });
+    }
+
     return res
       .status(200)
       .json({ message: 'Service request updated successfully' });
@@ -363,7 +375,8 @@ exports.acceptServiceRequest = async (req, res) => {
           transaction.update(requestRef, {  
               [`vendorResponses.${vendorId}.status`]: 'pending',  
               vendorId: vendorId, // Set the accepted vendor's ID  
-              state: 'pending'  
+              state: 'pending',  
+              step: 'Accepted' // Update the step to 'accepted'  
           });  
 
           // Set the status of all other vendors to 'unactive'  
@@ -381,10 +394,9 @@ exports.acceptServiceRequest = async (req, res) => {
       // Return success message  
       return res.status(200).json({ message: 'Service request accepted successfully', fcmToken });  
   } catch (error) {  
-      // Handle error  
       return res.status(500).json({ error: `Error accepting service request: ${error.message}` });  
   }  
-};  
+};
 
 // Helper function to check vendor responses and update request state
 async function checkAndCancelServiceRequest(requestId) {
