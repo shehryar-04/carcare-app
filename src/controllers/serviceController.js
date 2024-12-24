@@ -543,6 +543,8 @@ exports.cancelServiceRequestByUser = async (req, res) => {
     return res.status(500).json({ error: `Error cancelling service request by user: ${error.message}` });
   }
 };
+
+
 exports.completeServiceRequest = async (req, res) => {  
   const { userId, vendorId, serviceRequestId } = req.params; // Request parameters  
   const { servicePerformed, userRating, singleService } = req.body; // Inputs from user  
@@ -603,34 +605,37 @@ exports.completeServiceRequest = async (req, res) => {
       const updates = {};  
       let packagesRemaining = serviceRequestData.packages; // Keep current packages count  
   
-      if (servicePerformed) {  
-        if (!singleService) {  
-          packagesRemaining -= 1; // Subtract 1 from packages only if not single service  
-          if (packagesRemaining <= 0) {  
-            updates.state = "completed";  
-            updates.completedAt = Date.now();  
-          } else {  
-            updates.packages = packagesRemaining; // Update packages remaining  
-          }  
-        }  
-      } else {  
-        // If service was not performed  
-        if (singleService || (packagesRemaining <= 1)) {  
-          // Do not decrement packages or change state if it's a single service or if there is only one package remaining  
-          // Log the condition to indicate service was not performed  
-          updates.message = "Service was not performed.";  
-        } else {  
-          // Only mark as not performed if not singleService and packages are more than 1  
-          updates.state = "not performed";  
-          // Penalize vendor for non-performance  
-          const penaltyRating = Math.max(0, (vendorData.rating || 0) - 0.5);  
-          transaction.update(vendorRef, {  
-            rating: penaltyRating,  
-            incompleteRequests: admin.firestore.FieldValue.increment(1),  
-          });  
-        }  
-      }  
-  
+      if (servicePerformed) {
+        if (!singleService) {
+          packagesRemaining -= 1; // Subtract 1 from packages only if not single service
+          if (packagesRemaining > 0) {
+            // Reset the state to "accepted" since there are more packages remaining
+            updates.state = "accepted";
+            updates.packages = packagesRemaining; // Update packages remaining
+          } else {
+            // No packages remaining, mark as completed
+            updates.state = "completed";
+            updates.completedAt = Date.now();
+          }
+        }
+      } else {
+        // If service was not performed
+        if (singleService || packagesRemaining <= 1) {
+          // Do not decrement packages or change state if it's a single service or if there is only one package remaining
+          // Log the condition to indicate service was not performed
+          updates.message = "Service was not performed.";
+        } else {
+          // Only mark as not performed if not singleService and packages are more than 1
+          updates.state = "not performed";
+          // Penalize vendor for non-performance
+          const penaltyRating = Math.max(0, (vendorData.rating || 0) - 0.5);
+          transaction.update(vendorRef, {
+            rating: penaltyRating,
+            incompleteRequests: admin.firestore.FieldValue.increment(1),
+          });
+        }
+      }
+      
       // Update the service request only if there are updates  
       if (Object.keys(updates).length > 0) {  
         transaction.update(requestRef, updates);  
