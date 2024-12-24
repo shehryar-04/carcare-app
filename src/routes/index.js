@@ -1,5 +1,4 @@
 const express = require('express');
-
 const {
   createUser,
   verifyEmail,
@@ -60,6 +59,34 @@ const {
   updateArea,
   deleteArea,
 } = require('../controllers/areaController');
+const {
+  createWishlist,
+  getWishlistByUserId,
+  deleteFromWishlist,
+} = require('../controllers/wishlistController');
+const {
+  addToCart,
+  getCartByUserId,
+  deleteFromCart,
+} = require('../controllers/cartController');
+const {
+  createCategory,
+  getCategoryById,
+  getAllCategories,
+  updateCategory,
+  deleteCategory,
+} = require('../controllers/categoryController');
+const {
+  addSubscriber,
+  getAllSubscribers,
+} = require('../controllers/subscriptionController');
+const {
+  createProduct,
+  getProductById,
+  getAllProducts,
+  updateProduct,
+  deleteProduct,
+} = require('../controllers/productController');
 const { sendMessageToVendor,getAllChatsForUser,getAllChatsForVendor } = require('../controllers/chatController');
 const vendorController = require('../controllers/vendorController');
 const upload = require('../middlewares/multerConfig');
