@@ -135,7 +135,30 @@ router.post('/createVendor', vendorController.registerVendor);
 router.put('/vendor/:vendorId', vendorController.updateVendor);
 router.get('/vendors', vendorController.getVendors);  
 router.get('/vendor/:vendorId', vendorController.getVendorById);
-router.delete('/vendor/:vendorId',vendorController.deleteVendor)
+router.delete('/vendor/:vendorId',vendorController.deleteVendor);
+
+router.post('/wishlist', createWishlist);
+router.get('/wishlist/:userId', getWishlistByUserId);
+router.delete('/wishlist/:userId', deleteFromWishlist);
+// Cart-related routes
+router.post('/addToCart', addToCart);
+router.get('/cart/:userId', getCartByUserId);
+router.delete('/cart/:userId', deleteFromCart);
+// Categories-related routes
+router.post('/createCategory', createCategory);
+router.get('/categories', getAllCategories);
+router.get('/category/:id', getCategoryById);
+router.put('/category/:id', updateCategory);
+router.delete('/category/:id', deleteCategory);
+// Subscription-related routes
+router.post('/subscribe', addSubscriber);
+router.get('/subscribers', getAllSubscribers);
+// Product-related routes
+router.post('/createProduct', createProduct);
+router.get('/products', getAllProducts);
+router.get('/product/:id', getProductById);
+router.put('/product/:id', updateProduct);
+router.delete('/product/:id', deleteProduct);
 
 router.post('/send-notification-topic',notificationTopic)
 router.post('/send-notification-token',notificationToken)
