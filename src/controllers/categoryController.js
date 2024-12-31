@@ -7,7 +7,7 @@ exports.createCategory = async (req, res) => {
   try {
     const { title, image } = req.body;
     await categoryService.createCategory(title, image);
-    res.status(201).send('category created successfully.');
+    res.status(201).json({ message: 'Category created successfully.' });
   } catch (error) {
     handleErrorResponse(res, error, 'Error creating category');
   }

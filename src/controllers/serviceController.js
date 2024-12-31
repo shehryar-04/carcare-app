@@ -376,7 +376,7 @@ exports.acceptServiceRequest = async (req, res) => {
               [`vendorResponses.${vendorId}.status`]: 'pending',  
               vendorId: vendorId, // Set the accepted vendor's ID  
               state: 'pending',  
-              step: 'Accepted' // Update the step to 'accepted'  
+              step: 'accepted' // Update the step to 'accepted'  
           });  
 
           // Set the status of all other vendors to 'unactive'  
@@ -581,7 +581,7 @@ exports.completeServiceRequest = async (req, res) => {
         throw new Error("Vendor not found");  
       }  
       const vendorData = vendorDoc.data();  
-  
+      
       // Get service details  
       const serviceId = serviceRequestData.serviceId; // Extract service ID from service request data  
       const serviceRef = db.collection("services").doc(serviceId);  
@@ -610,11 +610,13 @@ exports.completeServiceRequest = async (req, res) => {
           packagesRemaining -= 1; // Subtract 1 from packages only if not single service
           if (packagesRemaining > 0) {
             // Reset the state to "accepted" since there are more packages remaining
-            updates.state = "accepted";
-            updates.packages = packagesRemaining; // Update packages remaining
+            updates.state = "pending";
+            updates.packages = packagesRemaining;
+            updates.step ="accepted"  // Update packages remaining
           } else {
             // No packages remaining, mark as completed
             updates.state = "completed";
+            updates.step = "complete";
             updates.completedAt = Date.now();
           }
         }

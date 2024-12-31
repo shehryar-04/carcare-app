@@ -1,59 +1,40 @@
-// Import the axios library
-const axios = require('axios');
+// Array of categories to create
+const categories = ["Electronics", "Books", "Clothing", "Home", "Beauty"];
 
-// Function to generate random coordinates within Lahore
-function getRandomCoordsInLahore() {
-    const latMin = 31.4; // Approximate minimum latitude for Lahore
-    const latMax = 31.6; // Approximate maximum latitude for Lahore
-    const lonMin = 74.2; // Approximate minimum longitude for Lahore
-    const lonMax = 74.4; // Approximate maximum longitude for Lahore
-
-    const latitude = (Math.random() * (latMax - latMin) + latMin).toFixed(6);
-    const longitude = (Math.random() * (lonMax - lonMin) + lonMin).toFixed(6);
-
-    return { latitude: parseFloat(latitude), longitude: parseFloat(longitude) };
+// Function to create a random image URL
+function getRandomImage() {
+    return `https://picsum.photos/200?random=${Math.floor(Math.random() * 1000)}`;
 }
 
-// Base URL for API
-const baseUrl = 'http://localhost:4000/api';
+// Function to create a category
+async function createCategory(category) {
+    const url = "http://localhost:4000/api/createCategory";
+    const categoryData = {
+        title: category,
+        image: getRandomImage(),
+    };
 
-// Main function to update vendor locations
-async function updateVendorLocations() {
     try {
-        // Step 1: Get all vendors
-        const vendorsResponse = await axios.get(`${baseUrl}/vendors`);
-        const vendors = vendorsResponse.data;
+        const response = await fetch(url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(categoryData),
+        });
 
-        if (!Array.isArray(vendors) || vendors.length === 0) {
-            console.log('No vendors found.');
-            return;
-        }
-
-        // Step 2: Update each vendor's location
-        for (const vendor of vendors) {
-            const vendorId = vendor.id; // Adjust according to the actual structure of the response
-
-            // Generate random coordinates within Lahore
-            const newCoords = getRandomCoordsInLahore();
-
-            // Step 3: Make PUT request to update the vendor's location
-            try {
-                await axios.put(`${baseUrl}/vendor/${vendorId}`, {
-                    location: {
-                        latitude: newCoords.latitude,
-                        longitude: newCoords.longitude
-                    }
-                });
-                console.log(`Updated vendor ${vendorId} with new location:`, newCoords);
-            } catch (updateError) {
-                console.error(`Failed to update vendor ${vendorId}:`, updateError.message);
-            }
+        if (response.ok) {
+            const result = await response.json();
+            console.log(`Category '${category}' created successfully:`, result);
+        } else {
+            console.error(`Failed to create category '${category}':`, response.status, response.statusText);
         }
     } catch (error) {
-        console.error('Error fetching vendors:', error.message);
+        console.error(`Error while creating category '${category}':`, error);
     }
 }
 
-// Run the function
-updateVendorLocations();
-                                                                                                                                                                                                                                                                                                                                                                                                                                  
+// Iterate through the categories array and create each category
+categories.forEach((category) => {
+    createCategory(category);
+});

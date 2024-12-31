@@ -7,7 +7,7 @@ exports.createProduct = async (req, res) => {
     try {
         const { image, price, title, description, category, tags } = req.body;
         await productService.createProduct(image, price, title, description, category, tags);
-        res.status(201).send('Product created successfully.');
+        res.status(201).json({ message: 'Product created successfully.' });
     } catch (error) {
         handleErrorResponse(res, error, 'Error creating Product');
     }
