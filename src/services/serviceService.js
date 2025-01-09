@@ -1,7 +1,7 @@
 const { db } = require('../config/firebaseconfig');
 
-exports.createService = async (name, description,packages,  image,vendorCommission) => {
-  const serviceData = { name, packages,description, image,vendorCommission};
+exports.createService = async (name, description,packages,  image,vendorCommission,carTypes) => {
+  const serviceData = { name, packages,description, image,vendorCommission,carTypes };
   await db.collection('services').add(serviceData);
 };
 

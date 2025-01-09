@@ -8,13 +8,14 @@ const handleErrorResponse = (res, error, message) =>
 // Create a new service
 exports.createService = async (req, res) => {
   try {
-    const { name, description,packages, image,vendorCommission} = req.body;
+    const { name, description,packages, image,vendorCommission,carTypes} = req.body;
     await serviceService.createService(
       name,
       description,
       packages,
       image,
-      vendorCommission
+      vendorCommission,
+      carTypes
     );
     res.status(201).json({ message: 'Service created successfully.' });
   } catch (error) {
@@ -85,98 +86,131 @@ exports.deleteService = async (req, res) => {
 };
 
 // Create a new service request
-// Create a new service request
-exports.requestService = async (req, res) => {
-  try {
-    const {
-      date,
-      time,
-      vehicleNumber,
-      currentLocation,
-      vehicleType,
-      userId,
-      price,
-      area,
-      serviceName,
-      vendorData,
-      location,
-      vendorId = null,
-      packages,
-      serviceId,
-      serviceType
-    } = req.body;
+  
+exports.requestService = async (req, res) => {  
+  try {  
+    const {  
+      date,  
+      time,  
+      vehicleNumber,  
+      currentLocation,  
+      vehicleType,  
+      userId,  
+      price,  
+      area,  
+      serviceName,  
+      location,  
+      vendorId = null,  
+      packages,  
+      serviceId,  
+      serviceType,  
+      vendorResponses // Assuming this is now passed in the request body  
+    } = req.body;  
+  
+    // Validate the incoming data  
+    if (  
+      !date ||  
+      !time ||  
+      !vehicleNumber ||  
+      !currentLocation ||  
+      !vehicleType ||  
+      !userId ||  
+      !price ||  
+      !area ||  
+      !vendorResponses // Ensure vendorResponses is present  
+    ) {  
+      return res.status(400).json({ error: 'All fields are required' });  
+    }  
+    
+    //("Vendor Responses:", req.body.vendorResponses);
+    const vendorResponsesArray = req.body.vendorResponses;
 
-    // Validate the incoming data
-    if (
-      !date ||
-      !time ||
-      !vehicleNumber ||
-      !currentLocation ||
-      !vehicleType ||
-      !userId ||
-      !price ||
-      !area
-    ) {
-      return res.status(400).json({ error: 'All fields are required' });
-    }
-
-    const vendorResponses = {};
-    vendorData.forEach((vendor) => {
-      vendorResponses[vendor.vendorId] = { status: 'pending' };
-    });
-
-    const expiryTime = Date.now() + (3* 60 * 1000); // 24 hours from now
-
-    // Create a new service request
-    const bookingDetails = {
-      date,
-      time,
-      vehicleNumber,
-      currentLocation,
-      vehicleType,
-      userId,
-      price,
-      state: 'active',
-      area,
-      serviceName,
-      serviceId,
-      vendorResponses,
-      location,
-      vendorId,
-      packages,
-      createdAt:  admin.firestore.FieldValue.serverTimestamp(),
-      expiryTime,
-      serviceType // Store expiry time
-    };
-
-    // Save the request to Firestore
-    const docRef = await db.collection('serviceRequests').add(bookingDetails);
-
-    // Start a timer to check the expiry and update the request
-    setTimeout(async () => {
-      const currentRequest = await db.collection('serviceRequests').doc(docRef.id).get();
-      const serviceRequest = currentRequest.data();
-
-      if (serviceRequest && serviceRequest.state === 'active' && Date.now() > serviceRequest.expiryTime) {
-        // Update request status to 'cancelled'
-        await db.collection('serviceRequests').doc(docRef.id).update({ state: 'cancelled' });
-
-        // Set all vendor responses to 'unactive'
-        const vendorUpdates = {};
-        Object.keys(serviceRequest.vendorResponses).forEach(vendorId => {
-          vendorUpdates[`vendorResponses.${vendorId}.status`] = 'unactive';
-        });
-
-        await db.collection('serviceRequests').doc(docRef.id).update(vendorUpdates);
-        console.log(`Service request ${docRef.id} cancelled due to expiry.`);
-      }
-    }, 3*60*60*1000); // Run after 24 hours
-
-    return res.status(201).json({ id: docRef.id, ...bookingDetails });
-  } catch (error) {
-    handleErrorResponse(res, error, 'Error creating service request');
-  }
-};
+    // Create a vendorResponses object
+    vendorResponses = vendorResponsesArray.reduce((acc, vendor) => {
+      acc[vendor.vendorId] = { status: 'active' };
+      return acc;
+    }, {});
+    // Extract vendor IDs from vendorResponses  
+    const vendorIds = Object.keys(vendorResponses);  
+    // //(vendorIds)
+  
+    // Fetch vendor data using vendor IDs (pseudo-code, replace with your actual data fetching logic)  
+    const vendorDataPromises = vendorIds.map(vendorId => {  
+      return getVendorDataById(vendorId); // Replace with your actual function to fetch vendor data  
+    });  
+  
+    // Wait for all vendor data to be fetched  
+    // //(vendorDataPromises)
+    const vendorDataArray = await Promise.all(vendorDataPromises); 
+    // //(vendorDataArray) 
+    
+    // Filter out vendors that have a valid fcmToken  
+    const notifications = vendorDataArray  
+      .filter(vendor => vendor && vendor.fcmToken) // Assuming vendor data has fcmToken  
+      .map(vendor => ({  
+        recipients: vendor.fcmToken,  
+        title: 'Service Request Notification',  
+        body: `You have a new service request for ${serviceName}.`  
+      }));  
+      console.log(vendorDataArray);
+      // //(notifications)
+    // Send notifications to each vendor  
+    const notificationPromises = notifications.map(notification => {  
+      return axios.post('https://carcarebaked.azurewebsites.net/api/send-notification-token', notification);  
+    });  
+  
+    // Wait for all notifications to be sent  
+    await Promise.all(notificationPromises);  
+  
+    // Create a new service request  
+    const bookingDetails = {  
+      date,  
+      time,  
+      vehicleNumber,  
+      currentLocation,  
+      vehicleType,  
+      userId,  
+      price,  
+      state: 'active',  
+      area,  
+      serviceName,  
+      serviceId,  
+      vendorResponses,  
+      location,  
+      vendorId,  
+      packages,  
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),  
+      expiryTime: Date.now() + (3 * 60 * 1000), // 3 minutes from now  
+      serviceType // Store expiry time  
+    };  
+  
+    // Save the request to Firestore  
+    const docRef = await db.collection('serviceRequests').add(bookingDetails);  
+  
+    // Start a timer to check the expiry and update the request  
+    setTimeout(async () => {  
+      const currentRequest = await db.collection('serviceRequests').doc(docRef.id).get();  
+      const serviceRequest = currentRequest.data();  
+      if (serviceRequest && serviceRequest.state === 'active' && Date.now() > serviceRequest.expiryTime) {  
+        // Update request status to 'cancelled'  
+        await db.collection('serviceRequests').doc(docRef.id).update({ state: 'cancelled' });  
+        // //(`Service request ${docRef.id} cancelled due to expiry.`);  
+      }  
+    }, 3 * 60 * 1000); // Run after 3 minutes  
+  
+    return res.status(201).json({ id: docRef.id, ...bookingDetails });  
+  } catch (error) {  
+    handleErrorResponse(res, error, 'Error creating service request');  
+  }  
+};  
+  
+// Mock function to get vendor data (replace with actual implementation)  
+async function getVendorDataById(vendorId) {  
+  // Replace this with your actual data fetching logic  
+  // For example, if you are using Firestore or another database, you would query it here.  
+  const vendorData = await db.collection('vendors').doc(vendorId).get();  
+  return vendorData.exists ? vendorData.data() : null;  
+}  
 
 // Get all services requests
 exports.getServicesRequests = async (req, res) => {
@@ -292,10 +326,9 @@ exports.getServiceRequestByUserId = async (req, res) => {
         
         const vendorId = serviceRequest.vendorId;  
         if (!vendorId || vendorId === '') {
-           
           return serviceRequest;  
         }
-        console.log(vendorId)
+        // //(vendorId)
         const vendorResponse = await axios.get(`https://carcarebaked.azurewebsites.net/api/vendor/${vendorId}`);  
         const vendorData = vendorResponse.data;  
   
@@ -404,7 +437,7 @@ async function checkAndCancelServiceRequest(requestId) {
   const requestSnapshot = await requestRef.get();
   
   if (!requestSnapshot.exists) {
-    console.log(`Service request ${requestId} does not exist.`);
+    // //(`Service request ${requestId} does not exist.`);
     return;
   }
 
@@ -419,7 +452,7 @@ async function checkAndCancelServiceRequest(requestId) {
   if (allVendorsCancelled) {
     // Update the request state to 'cancelled'
     await requestRef.update({ state: 'cancelled' });
-    console.log(`Service request ${requestId} updated to 'cancelled' because all vendor responses are 'unactive'.`);
+    //(`Service request ${requestId} updated to 'cancelled' because all vendor responses are 'unactive'.`);
   }
 }
 
@@ -447,7 +480,7 @@ cron.schedule('0 * * * *', async () => {
       });
 
       await db.collection('serviceRequests').doc(doc.id).update(vendorUpdates);
-      console.log(`Service request ${doc.id} cancelled due to expiry.`);
+      //(`Service request ${doc.id} cancelled due to expiry.`);
     }
 
     // Check if all vendors are inactive and update request status if necessary

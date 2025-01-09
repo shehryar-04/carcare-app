@@ -2,7 +2,7 @@ const admin = require('firebase-admin');
 const db = admin.firestore();  
   
   
-exports.createVendor = async ({profilePicture=null,displayName, phoneNumber, type, CNIC_front, CNIC_back, CNIC,area,services = null, imageUrl = null,rating=0,credits=0,fcmToken,location}) => {  
+exports.createVendor = async ({profilePicture=null,displayName, phoneNumber, type, CNIC_front, CNIC_back, CNIC,area,services = null, imageUrl = null,rating=0,credits=0,fcmToken,location,completedRequests=0}) => {  
     const vendorRef = db.collection('vendors').doc(); // Automatically generate a new ID  
     await vendorRef.set({  
         type,
@@ -19,7 +19,8 @@ exports.createVendor = async ({profilePicture=null,displayName, phoneNumber, typ
         location,
         displayName,
         profilePicture,
-        phoneNumber
+        phoneNumber,
+        completedRequests
     });  
     return {   
         id: vendorRef.id, 
