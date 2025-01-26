@@ -5,8 +5,8 @@ const handleErrorResponse = (res, error, message) =>
 // Create a new Product
 exports.createProduct = async (req, res) => {
     try {
-        const { image, price, title, description, category, tags } = req.body;
-        await productService.createProduct(image, price, title, description, category, tags);
+        const { image, price, title, description, category, quantity } = req.body;
+        await productService.createProduct(image, price, title, description, category, quantity);
         res.status(201).json({ message: 'Product created successfully.' });
     } catch (error) {
         handleErrorResponse(res, error, 'Error creating Product');
@@ -38,8 +38,8 @@ exports.getAllProducts = async (req, res) => {
 exports.updateProduct = async (req, res) => {
     try {
         const { id } = req.params;
-        const { image, price, title, description, category, tags } = req.body;
-        await productService.updateProduct(id, image, price, title, description, category, tags);
+        const { image, price, title, description, category, quantity } = req.body;
+        await productService.updateProduct(id, image, price, title, description, category, quantity);
         res.status(200).send('Product updated successfully.');
     } catch (error) {
         handleErrorResponse(res, error, 'Error updating Product');

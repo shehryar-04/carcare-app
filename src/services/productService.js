@@ -1,7 +1,7 @@
 const { db } = require('../config/firebaseconfig');
 
-exports.createProduct = async (image, price, title, description, category, tags) => {
-    const productData = { image, price, title, description, category, tags, createdAt: new Date() };
+exports.createProduct = async (image, price, title, description, category, quantity) => {
+    const productData = { image, price, title, description, category, quantity, createdAt: new Date() };
     await db.collection('products').add(productData);
 };
 
@@ -17,8 +17,8 @@ exports.getAllProducts = async () => {
     return productsSnapShot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 };
 
-exports.updateProduct = async (id, image, price, title, description, category, tags) => {
-    const updateData = { image, price, title, description, category, tags, updatedAt: new Date() };
+exports.updateProduct = async (id, image, price, title, description, category, quantity) => {
+    const updateData = { image, price, title, description, category, quantity, updatedAt: new Date() };
     await db.collection('products').doc(id).update(updateData);
 };
 
