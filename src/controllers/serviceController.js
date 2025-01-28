@@ -576,6 +576,95 @@ exports.cancelServiceRequestByUser = async (req, res) => {
     return res.status(500).json({ error: `Error cancelling service request by user: ${error.message}` });
   }
 };
+  
+// Function to check if the service request has less than 2 hours remaining  
+async function checkServiceRequestExpiryAndNotify(requestId) {  
+    try {  
+        const requestRef = db.collection('serviceRequests').doc(requestId);  
+        const serviceRequestDoc = await requestRef.get();  
+  
+        if (!serviceRequestDoc.exists) {  
+            console.log(`Service request ${requestId} not found.`);  
+            return;  
+        }  
+  
+        const serviceRequestData = serviceRequestDoc.data();  
+        const { userId, vendorId, expiryTime } = serviceRequestData;  
+  
+        const currentTime = Date.now();  
+        const remainingTime = expiryTime - currentTime;  
+  
+        // Check if less than 2 hours (7200000 milliseconds) remaining  
+        if (remainingTime < 2 * 60 * 60 * 1000) {  
+            // Fetch user data  
+            const userDoc = await db.collection('users').doc(userId).get();  
+            const userData = userDoc.exists ? userDoc.data() : null;  
+  
+            // Fetch vendor data  
+            const vendorDoc = await db.collection('vendors').doc(vendorId).get();  
+            const vendorData = vendorDoc.exists ? vendorDoc.data() : null;  
+  
+            // Prepare notifications  
+            if (userData && userData.fcmToken) {  
+                await sendNotification({  
+                    title: 'Service Request Reminder',  
+                    body: `The vendor will be at your location in less than 2 hours.`,  
+                    recipients: userData.fcmToken, // Send to user  
+                });  
+            }  
+  
+            if (vendorData && vendorData.fcmToken) {  
+                await sendNotification({  
+                    title: 'Service Request Reminder',  
+                    body: `You have less than 2 hours to perform a Wash.`,  
+                    recipients: vendorData.fcmToken, // Send to vendor  
+                });  
+            }  
+        }  
+    } catch (error) {  
+        console.error(`Error checking service request expiry: ${error.message}`);  
+    }  
+}  
+  
+// Function to send notifications using the specified API  
+async function sendNotification({ title, body, recipient }) {  
+    // Prepare the payload for the API  
+    const apiPayload = {  
+        title: title,  
+        body: body,  
+        recipients: recipient, // Send a single token as the recipient  
+    };  
+  
+    try {  
+        // Send the notification using the specified API  
+        const response = await axios.post('https://carcarebaked.azurewebsites.net/api/send-notification-token', apiPayload);  
+        console.log(`Notification sent to ${recipient}: ${response.data}`);  
+    } catch (error) {  
+        console.error(`Error sending notification to ${recipient}: ${error.message}`);  
+    }  
+}  
+  
+// Cron job to check for service requests every 30 minutes  
+cron.schedule('*/3 * * * *', async () => {  
+    try {  
+        const now = Date.now();  
+        const snapshot = await db.collection('serviceRequests')  
+            .where('state', '==', 'active') // Filter only active requests  
+            .get();  
+  
+        snapshot.forEach(doc => {  
+            const serviceRequest = doc.data();  
+            const { expiryTime } = serviceRequest;  
+  
+            // Check if less than 2 hours (7200000 milliseconds) remaining  
+            if (expiryTime && (expiryTime - now < 2 * 60 * 60 * 1000)) {  
+                checkServiceRequestExpiryAndNotify(doc.id); // Call the function to notify user and vendor  
+            }  
+        });  
+    } catch (error) {  
+        console.error(`Error checking service requests: ${error.message}`);  
+    }  
+});  
 
 
 exports.completeServiceRequest = async (req, res) => {  
@@ -704,6 +793,8 @@ exports.completeServiceRequest = async (req, res) => {
         vendorCommission: vendorCommission,  
         vendorEarnings: vendorEarnings,  
         log: `Service request ${serviceRequestId} processed. Vendor earned ${vendorEarnings} credits.`,  
+        isRead: false,  
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
       });  
   
       // Respond based on the number of remaining packages  
