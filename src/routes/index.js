@@ -91,8 +91,8 @@ const { sendMessageToVendor,getAllChatsForUser,getAllChatsForVendor } = require(
 const vendorController = require('../controllers/vendorController');
 const upload = require('../middlewares/multerConfig');
 // const notification = require('../controllers/toAllNotifiction')
-const notificationTopic = require('../controllers/toTopicNotifiction')
-const notificationToken = require('../controllers/toTokenNotifiction')
+const notificationTopic = require('../controllers/toTopicNotifiction');
+const notificationToken = require('../controllers/toTokenNotifiction');
 
 const router = express.Router();
 
