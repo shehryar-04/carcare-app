@@ -87,12 +87,12 @@ const {
   updateProduct,
   deleteProduct,
 } = require('../controllers/productController');
-const { sendMessageToVendor,getAllChatsForUser,getAllChatsForVendor } = require('../controllers/chatController');
+const { sendMessageToVendor, getAllChatsForUser, getAllChatsForVendor } = require('../controllers/chatController');
 const vendorController = require('../controllers/vendorController');
 const upload = require('../middlewares/multerConfig');
 // const notification = require('../controllers/toAllNotifiction')
-const notificationTopic = require('../controllers/toTopicNotifiction');
-const notificationToken = require('../controllers/toTokenNotifiction');
+const { sendNotificationTopic } = require('../controllers/toTopicNotifiction');
+const { sendNotificationToken } = require('../controllers/toTokenNotifiction');
 
 const router = express.Router();
 
@@ -103,11 +103,11 @@ router.get('/users', getUsers);
 router.get('/user/:uid', getUserById);
 router.put('/user/:uid', updateUser);
 router.post('resendVerificationEmail/:uid', resendVerificationEmail);
-router.post('/users/:uid/locations', addLocation);  
-router.delete('/users/:uid/locations', deleteLocation);  
-router.post('/user/:uid/fcm-token', postFcmToken);  
-router.post('/:uid/notifications',sendPushNotification);  
-router.put('/users/:uid/verification', updateUserVerification);  
+router.post('/users/:uid/locations', addLocation);
+router.delete('/users/:uid/locations', deleteLocation);
+router.post('/user/:uid/fcm-token', postFcmToken);
+router.post('/:uid/notifications', sendPushNotification);
+router.put('/users/:uid/verification', updateUserVerification);
 // Service-related routes
 router.post('/createService', createService);
 router.get('/services', getAllServices);
@@ -121,12 +121,12 @@ router.get('/service-request/:id', getServiceRequestById);
 router.get('/service-requests/user/:userId', getServiceRequestByUserId);
 router.get('/service-request/area/:area', getServiceRequestByArea);
 router.put('/service-request/:id', updateServiceRequestAllFields);
-router.put('/service-request/:requestId/accept/:vendorId',acceptServiceRequest)
+router.put('/service-request/:requestId/accept/:vendorId', acceptServiceRequest)
 router.patch('/service-request/:id', updateServiceRequest);
 router.get('/service-requests/vendor/:vendorId', getServiceRequestByVendor);
-router.put('/service-request/:requestId/vendor/:vendorId/cancel', cancelServiceRequest); 
+router.put('/service-request/:requestId/vendor/:vendorId/cancel', cancelServiceRequest);
 router.patch('/service-request/:requestId/cancelByUser/:userId', cancelServiceRequestByUser);
-router.post('/serviceRequests/:userId/:vendorId/:serviceRequestId/complete',completeServiceRequest)//complete service request {{"servicePerformed": true, // or false  "userRating": 4.5         // Optional, provided if the service was performed}
+router.post('/serviceRequests/:userId/:vendorId/:serviceRequestId/complete', completeServiceRequest)//complete service request {{"servicePerformed": true, // or false  "userRating": 4.5         // Optional, provided if the service was performed}
 router.delete('/service-request/:id', deleteServiceRequest);
 
 // Blog-related routes
@@ -137,8 +137,8 @@ router.put('/blog/:id', updateBlog);
 router.delete('/blog/:id', deleteBlog);
 // Chat-related routes
 router.post('/chat/:userId/:vendorId', sendMessageToVendor);
-router.get('/chats/user/:userId', getAllChatsForUser);  
-router.get('/chats/vendor/:vendorId', getAllChatsForVendor);  
+router.get('/chats/user/:userId', getAllChatsForUser);
+router.get('/chats/vendor/:vendorId', getAllChatsForVendor);
 
 // Area-related routes
 router.post('/areas', createArea);
@@ -160,9 +160,9 @@ router.delete('/image/:filename', deleteImage);
 // Vendor-related routes
 router.post('/createVendor', vendorController.registerVendor);
 router.put('/vendor/:vendorId', vendorController.updateVendor);
-router.get('/vendors', vendorController.getVendors);  
+router.get('/vendors', vendorController.getVendors);
 router.get('/vendor/:vendorId', vendorController.getVendorById);
-router.delete('/vendor/:vendorId',vendorController.deleteVendor);
+router.delete('/vendor/:vendorId', vendorController.deleteVendor);
 
 router.post('/wishlist', createWishlist);
 router.get('/wishlist/:userId', getWishlistByUserId);
@@ -187,7 +187,7 @@ router.get('/product/:id', getProductById);
 router.put('/product/:id', updateProduct);
 router.delete('/product/:id', deleteProduct);
 
-router.post('/send-notification-topic',notificationTopic.sendNotificationTopic)
-router.post('/send-notification-token',notificationToken.sendNotificationToken)
+router.post('/send-notification-topic', sendNotificationTopic)
+router.post('/send-notification-token', sendNotificationToken)
 
 module.exports = router;
