@@ -94,6 +94,14 @@ const upload = require('../middlewares/multerConfig');
 const { sendNotificationTopic } = require('../controllers/toTopicNotification');
 const { sendNotificationToken } = require('../controllers/toTokenNotification');
 
+const {  
+  createFAQ,  
+  getAllFAQs,  
+  getFAQById,  
+  updateFAQ,  
+  deleteFAQ,  
+} = require('../controllers/FAQCOntroller');  
+
 const router = express.Router();
 
 // User-related routes
@@ -189,5 +197,11 @@ router.delete('/product/:id', deleteProduct);
 
 router.post('/send-notification-topic', sendNotificationTopic)
 router.post('/send-notification-token', sendNotificationToken)
+
+router.post('/createfaqs', createFAQ);  
+router.get('/faqs', getAllFAQs);  
+router.get('/faqs/:id', getFAQById);  
+router.put('/faq/:id', updateFAQ);  
+router.delete('/faq/:id', deleteFAQ);  
 
 module.exports = router;
